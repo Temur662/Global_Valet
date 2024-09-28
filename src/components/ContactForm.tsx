@@ -1,5 +1,10 @@
 "use client";
 
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { formSchema } from "@/lib/schemas";
 
 import {
@@ -12,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
   Form,
@@ -23,7 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-import { z } from "zod";
+
 
 export default function ContactForm() {
   const form = useForm<z.infer<typeof formSchema>>({
@@ -38,10 +42,30 @@ export default function ContactForm() {
 
   // 2. Define a submit handler.
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values)
+    // Insert the data into Supabase
+    const insertData = async () => {
+      const { data, error } = await supabase
+        .from("contacts")
+        .insert([
+          {
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            message: values.message,
+          },
+        ]);
+  
+      if (error) {
+        console.error("Error inserting data:", error);
+        return;
+      }
+  
+      console.log("Form submitted successfully:", data);
+    };
+  
+    insertData();
   }
+  
 
   return (
     <Card className="max-w-md ">
