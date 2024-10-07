@@ -1,6 +1,5 @@
 "use client";
 
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
@@ -27,9 +26,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-
-
 export default function ContactForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);  // For success feedback
+  const [submitError, setSubmitError] = useState<string | null>(null);  // For error feedback
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,10 +41,13 @@ export default function ContactForm() {
     },
   });
 
-  // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Insert the data into Supabase
-    const insertData = async () => {
+  // Submit handler to insert data and show success/error messages
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false); // Reset feedback
+
+    try {
       const { data, error } = await supabase
         .from("contacts")
         .insert([
@@ -54,21 +58,24 @@ export default function ContactForm() {
             message: values.message,
           },
         ]);
-  
+
       if (error) {
-        console.error("Error inserting data:", error);
-        return;
+        throw new Error(error.message);
       }
-  
+
       console.log("Form submitted successfully:", data);
-    };
-  
-    insertData();
+      setSubmitSuccess(true);  // Show success message
+
+    } catch (error: any) {
+      console.error("Error inserting data:", error);
+      setSubmitError(error.message);  // Show error message
+    } finally {
+      setIsSubmitting(false);
+    }
   }
-  
 
   return (
-    <Card className="max-w-md ">
+    <Card className="max-w-md">
       <CardHeader>
         <CardTitle>Contact Us</CardTitle>
         <CardDescription>
@@ -145,9 +152,19 @@ export default function ContactForm() {
                 )}
               />
             </div>
-            <Button type="submit" className="ml-auto">
-              Submit
+            <Button type="submit" disabled={isSubmitting} className="ml-auto">
+              {isSubmitting ? "Submitting..." : "Submit"}
             </Button>
+
+            {/* Show success message */}
+            {submitSuccess && (
+              <p className="text-green-500 mt-4">Form submitted successfully! Thank you for contacting us.</p>
+            )}
+
+            {/* Show error message */}
+            {submitError && (
+              <p className="text-red-500 mt-4">Error: {submitError}</p>
+            )}
           </form>
         </Form>
       </CardContent>
